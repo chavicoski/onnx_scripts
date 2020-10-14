@@ -1,28 +1,26 @@
 from __future__ import print_function
-import os
+import numpy as np
+from tqdm import tqdm
 import argparse
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
-import caffe2.python.onnx.backend as backend
-import onnx
-from tqdm import tqdm
+from torchvision import datasets, transforms
+import onnxruntime
 from torchtext import datasets, data
 
 # Training settings
-parser = argparse.ArgumentParser(description='PyTorch IMDB LSTM Example')
+parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
-parser.add_argument('--onnx-models-path', type=str, default="onnx_models",
-                    help='Path to the folder to store the onnx models')
-parser.add_argument('-m', '--model-filename', type=str, default="lstm_imdb.onnx",
-                    help='Name of the model file')
+parser.add_argument('--no-cuda', action='store_true', default=False,
+                    help='disables CUDA training')
+parser.add_argument('-f', '--onnx-file', type=str, default="onnx_models/trained_model.onnx",
+                    help='File path to the onnx file with the pretrained model to test')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--vocab-size', type=int, default=2000,
                     help='Max size of the vocabulary (default: 2000)')
 args = parser.parse_args()
+use_cuda = not args.no_cuda and torch.cuda.is_available()
 
 torch.manual_seed(args.seed)
 
@@ -42,27 +40,23 @@ train_iterator, test_iterator = data.BucketIterator.splits(
     batch_size = args.batch_size,
     device = device)
 
-onnx_filepath = os.path.join(args.onnx_models_path, args.model_filename)
-print(f"Going to load the ONNX model from \"{onnx_filepath}\"")
-model = onnx.load(onnx_filepath)
-
-# Check that the IR is well formed
-#onnx.checker.check_model(model)
-
-# Print a human readable representation of the graph
-print(onnx.helper.printable_graph(model.graph))
-
-print("Going to build the caffe2 model from ONNX model")
-rep = backend.prepare(model, device="CPU") # or CPU
-print("Caffe2 model built!")
-
-# Inference with Caffe2 backend (only way to "import with pytorch")
+# Prepare ONNX runtime
+session = onnxruntime.InferenceSession(args.onnx_file, None)  # Create a session with the onnx model
+input_name = session.get_inputs()[0].name
+output_name = session.get_outputs()[0].name
+   
+# Inference with ONNX runtime
 correct = 0
 total = 0
 for batch in tqdm(test_iterator):
     data, label = batch.text.numpy(), batch.label.float()
-    outputs = torch.tensor(rep.run(data))
-    pred = torch.round(outputs)
+    data_aux = np.zeros((866, args.batch_size))
+    data_aux[:data.shape[0], :data.shape[1]] += data
+    data = data_aux
+    print(f"data shape {data.shape}")
+    print(f"label shape {data.size}")
+    output = session.run([output_name], {input_name: data})
+    pred = torch.round(torch.tensor(output))
     correct += pred.eq(label).sum().item()
     total += len(label)
 

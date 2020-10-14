@@ -4,7 +4,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv2D, Flatten, MaxPooling2D, Input
 from tensorflow.keras.datasets import mnist
 from keras.utils.np_utils import to_categorical
-import keras2onnx
 from onnx2keras import onnx_to_keras
 import onnx
 
@@ -12,7 +11,6 @@ import onnx
 onnx_models_path = "onnx_models"
 model_name = "trained_model"
 num_classes = 10
-batch_size = 100
 epochs = 5
 
 # Load MNIST data
@@ -42,8 +40,6 @@ onnx_model = onnx.load(f"{os.path.join(onnx_models_path, model_name)}.onnx")
 
 # Call the converter (input - is the main model input name, can be different for your model)
 k_model = onnx_to_keras(onnx_model, ['linput'])
-
-#model.build(input_shape=(28, 28, 1)) # For keras2onnx 
 
 model.compile(loss = 'categorical_crossentropy', 
         optimizer = "adam",               
