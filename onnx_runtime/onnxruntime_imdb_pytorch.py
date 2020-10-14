@@ -44,17 +44,20 @@ train_iterator, test_iterator = data.BucketIterator.splits(
 session = onnxruntime.InferenceSession(args.onnx_file, None)  # Create a session with the onnx model
 input_name = session.get_inputs()[0].name
 output_name = session.get_outputs()[0].name
+print('Input name: ', input_name)
+print('Output name: ', output_name)
    
 # Inference with ONNX runtime
 correct = 0
 total = 0
 for batch in tqdm(test_iterator):
-    data, label = batch.text.numpy(), batch.label.float()
-    data_aux = np.zeros((866, args.batch_size))
-    data_aux[:data.shape[0], :data.shape[1]] += data
-    data = data_aux
-    print(f"data shape {data.shape}")
-    print(f"label shape {data.size}")
+    data, label = batch.text.numpy().astype(np.longlong), batch.label.float()
+    dummy = np.zeros((892, args.batch_size))
+    try:
+        dummy[:data.shape[0], :data.shape[1]] = data
+    except:
+        continue
+    data = dummy.astype(np.longlong)
     output = session.run([output_name], {input_name: data})
     pred = torch.round(torch.tensor(output))
     correct += pred.eq(label).sum().item()
