@@ -17,6 +17,8 @@ def main():
                         help='File path to the onnx file with the pretrained model to test')
     parser.add_argument('--input-1D', action='store_true', default=False,
                         help='To change the input size to a 784 length vector')
+    parser.add_argument('--no-channel', action='store_true', default=False,
+                        help='If --input-1D is enabled, removes the channel dimension. (bs, 1, 784) -> (bs, 784)')
     parser.add_argument('--channel-last', action='store_true', default=False,
                         help='Change input shape from channel first to channel last')
     args = parser.parse_args()
@@ -48,7 +50,10 @@ def main():
         if args.channel_last:
             data = np.reshape(data, (data.shape[0], 28, 28, 1))
         if args.input_1D:
-            data = np.reshape(data, (data.shape[0], 1, -1))
+            if args.no_channel:
+                data = np.reshape(data, (data.shape[0], -1))
+            else:
+                data = np.reshape(data, (data.shape[0], 1, -1))
         result = session.run([output_name], {input_name: data})
         prediction = np.array(np.argmax(np.array(result).squeeze(), axis=1).astype(np.int))
         correct += np.sum(prediction == label)

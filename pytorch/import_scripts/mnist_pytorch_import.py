@@ -19,8 +19,12 @@ parser.add_argument('--onnx-models-path', type=str, default="onnx_models",
                     help='Path to the folder to store the onnx models')
 parser.add_argument('-m', '--model-filename', type=str, default="conv2D_mnist.onnx",
                     help='Name of the model file')
+parser.add_argument('--input-1D', action='store_true', default=False,
+                    help='To change the input size to a 784 length vector')
 parser.add_argument('--no-2D-input', action='store_true', default=False,
                     help='To change the input size to a 784 length vector')
+parser.add_argument('--no-channel', action='store_true', default=False,
+                    help='If --input-1D is enabled, removes the channel dimension. (bs, 1, 784) -> (bs, 784)')
 parser.add_argument('--channel-last', action='store_true', default=False,
                     help='Change input shape from channel first to channel last')
 args = parser.parse_args()
@@ -29,13 +33,19 @@ device = torch.device("cpu")
 
 kwargs = {'batch_size': args.batch_size}
 
-class from2Dto1D(object):
-    ''' Custom transform to preprocess data'''
-    def __call__(self, img):
-        return img.view((1, -1))
+if args.no_channel:
+    class from2Dto1D(object):
+        ''' Custom transform to preprocess data'''
+        def __call__(self, img):
+            return img.view((-1))
+else:
+    class from2Dto1D(object):
+        ''' Custom transform to preprocess data'''
+        def __call__(self, img):
+            return img.view((1, -1))
 
 _transforms = [transforms.ToTensor()]
-if args.no_2D_input:
+if args.input_1D:
     _transforms.append(from2Dto1D())
 transform = transforms.Compose(_transforms)
 

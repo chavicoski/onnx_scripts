@@ -10,8 +10,8 @@ import onnx
 # Config
 onnx_models_path = "onnx_models"
 model_name = "trained_model"
-num_classes = 10
-epochs = 5
+input_1D = True
+no_channel = True
 
 # Load MNIST data
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -21,10 +21,16 @@ x_train = x_train.astype("float32") / 255
 x_test = x_test.astype("float32") / 255
 
 # Make sure images have shape (28, 28, 1)
-#x_train = x_train.reshape((x_train.shape[0], 28, 28, 1))
-#x_test = x_test.reshape((x_test.shape[0], 28, 28, 1))
-x_train = x_train.reshape((x_train.shape[0], 1, 784))
-x_test = x_test.reshape((x_test.shape[0], 1, 784))
+if input_1D:
+    if no_channel:
+        x_train = x_train.reshape((x_train.shape[0], 1, 784))
+        x_test = x_test.reshape((x_test.shape[0], 1, 784))
+    else:
+        x_train = x_train.reshape((x_train.shape[0], 1, 784))
+        x_test = x_test.reshape((x_test.shape[0], 1, 784))
+else:
+    x_train = x_train.reshape((x_train.shape[0], 28, 28, 1))
+    x_test = x_test.reshape((x_test.shape[0], 28, 28, 1))
 
 # Get one hot encoding from labels
 y_train = to_categorical(y_train)
