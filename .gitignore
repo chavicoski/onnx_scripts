@@ -1,3 +1,4 @@
 data/
 .data/
 *.onnx
+**/onnx_models
