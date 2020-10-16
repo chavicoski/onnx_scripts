@@ -11,8 +11,6 @@ def main():
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
-    parser.add_argument('--no-cuda', action='store_true', default=False,
-                        help='disables CUDA training')
     parser.add_argument('-f', '--onnx-file', type=str, default="onnx_models/trained_model.onnx",
                         help='File path to the onnx file with the pretrained model to test')
     parser.add_argument('--input-1D', action='store_true', default=False,
@@ -22,15 +20,10 @@ def main():
     parser.add_argument('--channel-last', action='store_true', default=False,
                         help='Change input shape from channel first to channel last')
     args = parser.parse_args()
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
 
-    device = torch.device("cuda" if use_cuda else "cpu")
+    device = torch.device("cpu")
 
     kwargs = {'batch_size': args.batch_size}
-    if use_cuda:
-        kwargs.update({'num_workers': 2,
-                       'shuffle': True},
-                     )
 
     # Prepare data loader
     transform=transforms.Compose([transforms.ToTensor()])

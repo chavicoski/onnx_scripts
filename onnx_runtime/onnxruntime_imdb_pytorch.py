@@ -8,11 +8,9 @@ import onnxruntime
 from torchtext import datasets, data
 
 # Training settings
-parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
+parser = argparse.ArgumentParser(description='Inference with ONNX runtime from Pytorch ONNX model')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
-parser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='disables CUDA training')
 parser.add_argument('-f', '--onnx-file', type=str, default="onnx_models/trained_model.onnx",
                     help='File path to the onnx file with the pretrained model to test')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -20,7 +18,6 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
 parser.add_argument('--vocab-size', type=int, default=2000,
                     help='Max size of the vocabulary (default: 2000)')
 args = parser.parse_args()
-use_cuda = not args.no_cuda and torch.cuda.is_available()
 
 torch.manual_seed(args.seed)
 
@@ -44,15 +41,13 @@ train_iterator, test_iterator = data.BucketIterator.splits(
 session = onnxruntime.InferenceSession(args.onnx_file, None)  # Create a session with the onnx model
 input_name = session.get_inputs()[0].name
 output_name = session.get_outputs()[0].name
-print('Input name: ', input_name)
-print('Output name: ', output_name)
    
 # Inference with ONNX runtime
 correct = 0
 total = 0
 for batch in tqdm(test_iterator):
     data, label = batch.text.numpy().astype(np.longlong), batch.label.float()
-    dummy = np.zeros((892, args.batch_size))
+    dummy = np.zeros((1000, args.batch_size))
     try:
         dummy[:data.shape[0], :data.shape[1]] = data
     except:
