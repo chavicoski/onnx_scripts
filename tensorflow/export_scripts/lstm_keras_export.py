@@ -1,4 +1,5 @@
 import os
+import argparse
 import keras2onnx
 from tensorflow.keras.preprocessing import sequence
 from tensorflow.keras.models import Sequential
@@ -6,28 +7,40 @@ from tensorflow.keras.layers import Dense, Embedding
 from tensorflow.keras.layers import LSTM
 from tensorflow.keras.datasets import imdb
 
-onnx_models_path = "onnx_models"
-model_name = "lstm_imdb"
-epochs = 5
-max_features = 2000
-# cut texts after this number of words (among top max_features most common words)
-maxlen = 80
-batch_size = 64
+# Training settings
+parser = argparse.ArgumentParser(description='Keras IMDB LSTM Example')
+parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+                    help='input batch size for training (default: 64)')
+parser.add_argument('--epochs', type=int, default=7, metavar='N',
+                    help='number of epochs to train (default: 5)')
+parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+                    help='learning rate (default: 0.01)')
+parser.add_argument('--no-cuda', action='store_true', default=False,
+                    help='disables CUDA training')
+parser.add_argument('--seed', type=int, default=1, metavar='S',
+                    help='random seed (default: 1)')
+parser.add_argument('--vocab-size', type=int, default=2000,
+                    help='Max size of the vocabulary (default: 2000)')
+parser.add_argument('--max-len', type=int, default=80,
+                    help='Sequence max length (default: 80)')
+parser.add_argument('--output-path', type=str, default="onnx_models/lstm_imdb.onnx", 
+                    help='Output path to store the onnx file')
+args = parser.parse_args()
 
 print('Loading data...')
-(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=args.vocab_size)
 print(len(x_train), 'train sequences')
 print(len(x_test), 'test sequences')
 
 print('Pad sequences (samples x time)')
-x_train = sequence.pad_sequences(x_train, maxlen=maxlen)
-x_test = sequence.pad_sequences(x_test, maxlen=maxlen)
+x_train = sequence.pad_sequences(x_train, maxlen=args.max_len)
+x_test = sequence.pad_sequences(x_test, maxlen=args.max_len)
 print('x_train shape:', x_train.shape)
 print('x_test shape:', x_test.shape)
 
 print('Build model...')
 model = Sequential()
-model.add(Embedding(max_features, 32))
+model.add(Embedding(args.vocab_size, 32))
 model.add(LSTM(32))
 model.add(Dense(1, activation='sigmoid'))
 
@@ -38,16 +51,16 @@ model.compile(loss='binary_crossentropy',
 
 print('Train...')
 model.fit(x_train, y_train,
-          batch_size=batch_size,
-          epochs=5,
+          batch_size=args.batch_size,
+          epochs=args.epochs,
           validation_data=(x_test, y_test))
 
 loss, acc = model.evaluate(x_test, y_test,
-                            batch_size=batch_size)
+                            batch_size=args.batch_size)
 
 print("Evaluation result: Loss:", loss, " Accuracy:", acc)
 
 # Convert to ONNX
-onnx_model = keras2onnx.convert_keras(model, model_name, debug_mode=1)
+onnx_model = keras2onnx.convert_keras(model, "lstm_imdb", debug_mode=1)
 # Save ONNX to file
-keras2onnx.save_model(onnx_model, f"{os.path.join(onnx_models_path, model_name)}.onnx")
+keras2onnx.save_model(onnx_model, args.output_path)

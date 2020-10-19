@@ -1,4 +1,5 @@
 import numpy as np
+import argparse
 import os
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv1D, Flatten, MaxPooling1D, Input
@@ -6,12 +7,21 @@ from tensorflow.keras.datasets import mnist
 from keras.utils.np_utils import to_categorical
 import keras2onnx
 
-# Config
-onnx_models_path = "onnx_models"
-model_name = "conv1D_mnist"
-num_classes = 10
-batch_size = 100
-epochs = 5
+# Training settings
+parser = argparse.ArgumentParser(description='Keras Conv1D MNIST Example')
+parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+                    help='input batch size for training (default: 64)')
+parser.add_argument('--epochs', type=int, default=5, metavar='N',
+                    help='number of epochs to train (default: 5)')
+parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+                    help='learning rate (default: 0.01)')
+parser.add_argument('--no-cuda', action='store_true', default=False,
+                    help='disables CUDA training')
+parser.add_argument('--seed', type=int, default=1, metavar='S',
+                    help='random seed (default: 1)')
+parser.add_argument('--output-path', type=str, default="onnx_models/conv1D_mnist.onnx",
+                    help='Output path to store the onnx file')
+args = parser.parse_args()
 
 # Load MNIST data
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -44,7 +54,7 @@ model.add(MaxPooling1D(2, 2))
 model.add(Conv1D(16, 3, activation="relu"))
 model.add(MaxPooling1D(2, 2))
 model.add(Flatten())
-model.add(Dense(num_classes, activation = 'softmax'))
+model.add(Dense(10, activation = 'softmax'))
 
 model.build(input_shape=(784, 1))  # For keras2onnx
 
@@ -55,13 +65,13 @@ model.compile(loss = 'categorical_crossentropy',
 model.summary()
 
 # Training
-model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
+model.fit(x_train, y_train, batch_size=args.batch_size, epochs=args.epochs)
 
 # Evaluation
 acc = model.evaluate(x_test, y_test)
 print("Evaluation result: Loss:", acc[0], " Accuracy:", acc[1])
 
 # Convert to ONNX
-onnx_model = keras2onnx.convert_keras(model, model_name, debug_mode=1)
+onnx_model = keras2onnx.convert_keras(model, "conv1D_mnist", debug_mode=1)
 # Save ONNX to file
-keras2onnx.save_model(onnx_model, f"{os.path.join(onnx_models_path, model_name)}.onnx")
+keras2onnx.save_model(onnx_model, args.output_path)

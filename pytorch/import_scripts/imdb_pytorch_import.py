@@ -10,7 +10,6 @@ import onnx
 from tqdm import tqdm
 from torchtext import datasets, data
 
-# Training settings
 parser = argparse.ArgumentParser(description='PyTorch IMDB import ONNX example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
