@@ -11,15 +11,12 @@ import caffe2.python.onnx.backend as backend
 import onnx
 from tqdm import tqdm
 
-# Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST ONNX import example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
-parser.add_argument('--model-path', type=str, default="onnx_models/lstm_imdb.onnx", 
+parser.add_argument('--model-path', type=str, default="onnx_models/conv2D_mnist.onnx", 
                     help='Path of the onnx file to load')
 parser.add_argument('--input-1D', action='store_true', default=False,
-                    help='To change the input size to a 784 length vector')
-parser.add_argument('--no-2D-input', action='store_true', default=False,
                     help='To change the input size to a 784 length vector')
 parser.add_argument('--no-channel', action='store_true', default=False,
                     help='If --input-1D is enabled, removes the channel dimension. (bs, 1, 784) -> (bs, 784)')
