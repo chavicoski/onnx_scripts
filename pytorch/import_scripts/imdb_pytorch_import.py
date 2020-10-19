@@ -11,13 +11,11 @@ from tqdm import tqdm
 from torchtext import datasets, data
 
 # Training settings
-parser = argparse.ArgumentParser(description='PyTorch IMDB LSTM Example')
+parser = argparse.ArgumentParser(description='PyTorch IMDB import ONNX example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
-parser.add_argument('--onnx-models-path', type=str, default="onnx_models",
-                    help='Path to the folder to store the onnx models')
-parser.add_argument('-m', '--model-filename', type=str, default="lstm_imdb.onnx",
-                    help='Name of the model file')
+parser.add_argument('--model-path', type=str, default="onnx_models/lstm_imdb.onnx", 
+                    help='Path of the onnx file to load')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--vocab-size', type=int, default=2000,
@@ -42,9 +40,8 @@ train_iterator, test_iterator = data.BucketIterator.splits(
     batch_size = args.batch_size,
     device = device)
 
-onnx_filepath = os.path.join(args.onnx_models_path, args.model_filename)
-print(f"Going to load the ONNX model from \"{onnx_filepath}\"")
-model = onnx.load(onnx_filepath)
+print(f"Going to load the ONNX model from \"{args.model_path}\"")
+model = onnx.load(args.model_path)
 
 # Check that the IR is well formed
 #onnx.checker.check_model(model)
@@ -61,6 +58,7 @@ correct = 0
 total = 0
 for batch in tqdm(test_iterator):
     data, label = batch.text.numpy(), batch.label.float()
+    label = label.view(label.shape + (1,))
     outputs = torch.tensor(rep.run(data))
     pred = torch.round(outputs)
     correct += pred.eq(label).sum().item()

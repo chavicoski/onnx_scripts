@@ -34,7 +34,7 @@ class Net(nn.Module):
             nn.MaxPool1d(4),
             Flatten(),
             nn.Linear(32, 10),
-            nn.Softmax()
+            nn.Softmax(dim=1)
             )
 
     def forward(self, x):
@@ -55,13 +55,11 @@ def train(args, model, device, train_loader, optimizer, epoch):
         correct += pred.eq(target.view_as(pred)).sum().item()
         current_samples += data.size(0)
         optimizer.step()
-        if batch_idx % args.log_interval == 0:
+        if batch_idx % 10 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAcc: {:.2f}%'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.item(),
                 100. * correct / current_samples))
-            if args.dry_run:
-                break
 
 
 def test(model, device, test_loader):
@@ -88,24 +86,16 @@ def main():
     parser = argparse.ArgumentParser(description='PyTorch Conv1D MNIST Example')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
-    parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
-                        help='input batch size for testing (default: 1000)')
     parser.add_argument('--epochs', type=int, default=5, metavar='N',
                         help='number of epochs to train (default: 5)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='learning rate (default: 0.01)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
-    parser.add_argument('--dry-run', action='store_true', default=False,
-                        help='quickly check a single pass')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                        help='how many batches to wait before logging training status')
-    parser.add_argument('--onnx-models-path', type=str, default="onnx_models",
-                        help='Path to the folder to store the onnx models')
-    parser.add_argument('--model-name', type=str, default="conv1D_mnist",
-                        help='Name of the model (for the save file)')
+    parser.add_argument('--output-path', type=str, default="onnx_models/conv1D_mnist.onnx",
+                        help='Output path to store the onnx file')
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -145,7 +135,7 @@ def main():
 
     # Save to ONNX file
     dummy_input = torch.randn(args.batch_size, 1, 784, device=device)
-    torch.onnx._export(model, dummy_input, f"{os.path.join(args.onnx_models_path, args.model_name)}.onnx", keep_initializers_as_inputs=True)
+    torch.onnx._export(model, dummy_input, args.output_path, keep_initializers_as_inputs=True)
 
 if __name__ == '__main__':
     main()

@@ -47,6 +47,7 @@ correct = 0
 total = 0
 for batch in tqdm(test_iterator):
     data, label = batch.text.numpy().astype(np.longlong), batch.label.float()
+    label = label.view(label.shape + (1,))
     dummy = np.zeros((1000, args.batch_size))
     try:
         dummy[:data.shape[0], :data.shape[1]] = data

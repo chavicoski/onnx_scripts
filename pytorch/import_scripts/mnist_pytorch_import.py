@@ -12,13 +12,11 @@ import onnx
 from tqdm import tqdm
 
 # Training settings
-parser = argparse.ArgumentParser(description='PyTorch Conv2D MNIST Example')
+parser = argparse.ArgumentParser(description='PyTorch MNIST ONNX import example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
-parser.add_argument('--onnx-models-path', type=str, default="onnx_models",
-                    help='Path to the folder to store the onnx models')
-parser.add_argument('-m', '--model-filename', type=str, default="conv2D_mnist.onnx",
-                    help='Name of the model file')
+parser.add_argument('--model-path', type=str, default="onnx_models/lstm_imdb.onnx", 
+                    help='Path of the onnx file to load')
 parser.add_argument('--input-1D', action='store_true', default=False,
                     help='To change the input size to a 784 length vector')
 parser.add_argument('--no-2D-input', action='store_true', default=False,
@@ -53,9 +51,8 @@ dataset = datasets.MNIST('../data', train=False, download=True,
                    transform=transform)
 data_loader = torch.utils.data.DataLoader(dataset, drop_last=True, **kwargs)
 
-onnx_filepath = os.path.join(args.onnx_models_path, args.model_filename)
-print(f"Going to load the ONNX model from \"{onnx_filepath}\"")
-model = onnx.load(onnx_filepath)
+print(f"Going to load the ONNX model from \"{args.model_path}\"")
+model = onnx.load(args.model_path)
 
 # Check that the IR is well formed
 #onnx.checker.check_model(model)
