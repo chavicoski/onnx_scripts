@@ -4,6 +4,7 @@ from tqdm import tqdm
 import argparse
 import torch
 from torchvision import datasets, transforms
+import onnx
 import onnxruntime
 
 def main():
@@ -19,6 +20,8 @@ def main():
                         help='If --input-1D is enabled, removes the channel dimension. (bs, 1, 784) -> (bs, 784)')
     parser.add_argument('--channel-last', action='store_true', default=False,
                         help='Change input shape from channel first to channel last')
+    parser.add_argument('--sequence', action='store_true', default=False,
+                        help='To change the input shape to a sequence (seq_len=28, bs, in_len=28)')
     args = parser.parse_args()
 
     device = torch.device("cpu")
@@ -30,25 +33,38 @@ def main():
     dataset = datasets.MNIST('../data', train=False, download=True, transform=transform)
     data_loader = torch.utils.data.DataLoader(dataset, drop_last=True, **kwargs)
 
+    # Print ONNX graph
+    onnx_model = onnx.load(args.onnx_file)
+    print(onnx.helper.printable_graph(onnx_model.graph))
+
     # Prepare ONNX runtime
     session = onnxruntime.InferenceSession(args.onnx_file, None)  # Create a session with the onnx model
     input_name = session.get_inputs()[0].name
     output_name = session.get_outputs()[0].name
-       
+
     # Inference with ONNX runtime
     correct = 0
     total = 0
     for data, label in tqdm(data_loader):
         data, label = data.numpy(), label.numpy()
-        if args.channel_last:
-            data = np.reshape(data, (data.shape[0], 28, 28, 1))
-        if args.input_1D:
-            if args.no_channel:
-                data = np.reshape(data, (data.shape[0], -1))
-            else:
-                data = np.reshape(data, (data.shape[0], 1, -1))
+        if args.sequence:
+                data = np.reshape(data, (data.shape[0], 28, 28))
+                data = np.transpose(data, (1, 0, 2))
+        else:
+            if args.channel_last:
+                data = np.reshape(data, (data.shape[0], 28, 28, 1))
+            if args.input_1D:
+                if args.no_channel:
+                    data = np.reshape(data, (data.shape[0], -1))
+                else:
+                    data = np.reshape(data, (data.shape[0], 1, -1))
+            elif args.no_channel:
+                data = np.reshape(data, (data.shape[0], 28, 28))
         result = session.run([output_name], {input_name: data})
-        prediction = np.array(np.argmax(np.array(result).squeeze(), axis=1).astype(np.int))
+        if args.batch_size == 1:
+            prediction = np.array([np.argmax(result).astype(np.int)])
+        else:
+            prediction = np.array(np.argmax(np.array(result).squeeze(), axis=1).astype(np.int))
         correct += np.sum(prediction == label)
         total += len(prediction)
 
