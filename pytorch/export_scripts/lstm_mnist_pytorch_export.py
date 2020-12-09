@@ -19,10 +19,11 @@ class Net(nn.Module):
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
+        x = x.permute(1, 0, 2)
         x = self.dense1(x)
         x = self.lrelu1(x)
         lstm_out, (h, c) = self.recurrent(x)
-        h = h.view((64, 128))
+        h = torch.squeeze(h, 0)
         x = self.dense2(h)
         x = self.lrelu2(x)
         x = self.dense3(x)
@@ -36,7 +37,6 @@ def train(args, model, device, train_loader, optimizer, epoch):
     current_samples = 0
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
-        data = data.permute(1, 0, 2)  # seq_len, batch_size, in_len
         optimizer.zero_grad()
         output = model(data)
         loss = F.cross_entropy(output, target)
@@ -59,7 +59,6 @@ def test(model, device, test_loader):
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
-            data = data.permute(1, 0, 2)  # seq_len, batch_size, in_len
             output = model(data)
             test_loss += F.cross_entropy(output, target, reduction='sum').item()  # sum up batch loss
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
@@ -85,7 +84,7 @@ def main():
                         help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--output-path', type=str, default="onnx_models/lstm_mnist.onnx", 
+    parser.add_argument('--output-path', type=str, default="onnx_models/lstm_mnist.onnx",
                         help='Output path to store the onnx file')
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -126,7 +125,7 @@ def main():
         test(model, device, test_loader)
 
     # Save to ONNX file
-    dummy_input = torch.randn(28, args.batch_size, 28, device=device)
+    dummy_input = torch.randn(args.batch_size, 28, 28, device=device)
     torch.onnx._export(model, dummy_input, args.output_path, keep_initializers_as_inputs=True)
 
 if __name__ == '__main__':
