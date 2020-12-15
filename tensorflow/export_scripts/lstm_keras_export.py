@@ -3,7 +3,7 @@ import argparse
 import keras2onnx
 from tensorflow.keras.preprocessing import sequence
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Embedding
+from tensorflow.keras.layers import Dense, Embedding, Input
 from tensorflow.keras.layers import LSTM
 from tensorflow.keras.datasets import imdb
 
@@ -40,6 +40,7 @@ print('x_test shape:', x_test.shape)
 
 print('Build model...')
 model = Sequential()
+model.add(Input(shape=(x_train.shape[-1])))
 model.add(Embedding(args.vocab_size, 32))
 model.add(LSTM(32))
 model.add(Dense(1, activation='sigmoid'))
