@@ -18,12 +18,12 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--vocab-size', type=int, default=2000,
                     help='Max size of the vocabulary (default: 2000)')
-parser.add_argument('--max-len', type=int, default=80,
+parser.add_argument('--max-len', type=int, default=250,
                     help='Sequence max length (default: 80)')
 args = parser.parse_args()
 
 print('Loading data...')
-(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=args.vocab_size)
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=args.vocab_size, maxlen=args.max_len)
 print(len(x_train), 'train sequences')
 print(len(x_test), 'test sequences')
 
