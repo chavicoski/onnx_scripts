@@ -5,7 +5,6 @@ import numpy as np
 import onnx
 import keras2onnx
 import onnxruntime
-from onnx2keras import onnx_to_keras
 from tensorflow.keras.preprocessing import sequence
 from tensorflow.keras.datasets import imdb
 
@@ -19,6 +18,8 @@ parser.add_argument('--max-len', type=int, default=80,
                     help='Max len of input sequences (default: 80)')
 parser.add_argument('--max-features', type=int, default=2000,
                     help='Maximum number of words from IMDB dataset')
+parser.add_argument('-uin', '--unsqueeze-input', action='store_true', default=False,
+                    help='Input shape from [batch, seq_len] to [batch, seq_len, 1]')
 args = parser.parse_args()
 
 
@@ -44,6 +45,8 @@ output_name = session.get_outputs()[0].name
 correct = 0
 total = 0
 for data, labels in batch_gen(x_test, y_test, args.batch_size):
+    if args.unsqueeze_input:
+        data = data.reshape(data.shape + (1,))
     output = session.run([output_name], {input_name: data})
     pred = torch.round(torch.tensor(output)).reshape((args.batch_size))
     correct += pred.eq(torch.tensor(labels)).sum().item()

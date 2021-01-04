@@ -74,8 +74,8 @@ def test(model, device, test_loader):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch Conv2D MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
+    parser.add_argument('--batch-size', type=int, default=100, metavar='N',
+                        help='input batch size for training (default: 100)')
     parser.add_argument('--epochs', type=int, default=5, metavar='N',
                         help='number of epochs to train (default: 5)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
@@ -114,8 +114,8 @@ def main():
                        transform=transform)
     dataset2 = datasets.MNIST('../data', train=False,
                        transform=transform)
-    train_loader = torch.utils.data.DataLoader(dataset1, drop_last=True, **kwargs)
-    test_loader = torch.utils.data.DataLoader(dataset2, drop_last=True, **kwargs)
+    train_loader = torch.utils.data.DataLoader(dataset1, drop_last=False, **kwargs)
+    test_loader = torch.utils.data.DataLoader(dataset2, drop_last=False, **kwargs)
 
     model = Net().to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)

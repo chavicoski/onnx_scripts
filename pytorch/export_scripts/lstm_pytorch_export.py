@@ -16,7 +16,7 @@ class Net(nn.Module):
         self.hidden_dim = hidden_dim
         # Build the model
         self.embedding = nn.Embedding(input_dim, embedding_dim)
-        self.recurrent = nn.LSTM(embedding_dim, hidden_dim)
+        self.recurrent = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
         self.dense = nn.Sequential(
             nn.Linear(hidden_dim, output_dim),
             nn.Sigmoid()
@@ -26,13 +26,11 @@ class Net(nn.Module):
         embedded = self.embedding(x)  
         # embedded = [n_seq, batch_size, n_embedding]
 
-        lstm_out, _ = self.recurrent(embedded)  
-        # lstm_out = [n_seq, batch_size, n_hidden]
+        lstm_out, (h, c) = self.recurrent(embedded)
+        h = torch.squeeze(h, 0)
+        # h = [batch_size, n_hidden]
 
-        lstm_out = lstm_out[-1]  
-        # lstm_out = [batch_size, n_hidden]
-
-        dense_out = self.dense(lstm_out)
+        dense_out = self.dense(h)
         # dense_out = [batch_size, output_dim]
 
         return dense_out  # Get last pred from seq
@@ -45,6 +43,7 @@ def train(args, model, device, train_loader, criterion, optimizer, epoch):
     for batch_idx, batch in enumerate(train_loader):
         optimizer.zero_grad()
         data, target = batch.text, batch.label.float()
+        data = torch.transpose(data, 0, 1)
         target = target.view((target.shape[0], 1))
         output = model(data)
         loss = criterion(output, target)
@@ -67,6 +66,7 @@ def test(model, device, test_loader, criterion):
     with torch.no_grad():
         for batch in test_loader:
             data, target = batch.text, batch.label.float()
+            data = torch.transpose(data, 0, 1)
             target = target.view((target.shape[0], 1))
             output = model(data)
             test_loss += criterion(output, target).item()  # sum up batch loss
@@ -83,10 +83,10 @@ def test(model, device, test_loader, criterion):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch IMDB LSTM Example')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--epochs', type=int, default=7, metavar='N',
-                        help='number of epochs to train (default: 5)')
+    parser.add_argument('--batch-size', type=int, default=100, metavar='N',
+                        help='input batch size for training (default: 100)')
+    parser.add_argument('--epochs', type=int, default=10, metavar='N',
+                        help='number of epochs to train (default: 10)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='learning rate (default: 0.01)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -110,7 +110,7 @@ def main():
     # Create data splits
     train_data, test_data = datasets.IMDB.splits(TEXT, LABEL)
     # Create vocabulary
-    TEXT.build_vocab(train_data, max_size = args.vocab_size)
+    TEXT.build_vocab(train_data, max_size = args.vocab_size-2)
     LABEL.build_vocab(train_data)
     # Create splits iterators
     train_iterator, test_iterator = data.BucketIterator.splits(
