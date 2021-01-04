@@ -127,7 +127,7 @@ def main():
         test(model, device, test_iterator, criterion)
 
     # Save to ONNX file
-    dummy_input = torch.zeros((1000, args.batch_size)).long().to(device)
+    dummy_input = torch.zeros((args.batch_size, 1000)).long().to(device)
     torch.onnx._export(model, dummy_input, args.output_path, keep_initializers_as_inputs=True)
 
 if __name__ == '__main__':

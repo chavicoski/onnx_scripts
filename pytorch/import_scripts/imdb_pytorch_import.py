@@ -31,7 +31,7 @@ LABEL = data.LabelField()
 # Create data splits
 train_data, test_data = datasets.IMDB.splits(TEXT, LABEL)
 # Create vocabulary
-TEXT.build_vocab(train_data, max_size = args.vocab_size)
+TEXT.build_vocab(train_data, max_size = args.vocab_size-2)
 LABEL.build_vocab(train_data)
 # Create splits iterators
 train_iterator, test_iterator = data.BucketIterator.splits(
@@ -57,6 +57,7 @@ correct = 0
 total = 0
 for batch in tqdm(test_iterator):
     data, label = batch.text.numpy(), batch.label.float()
+    data = np.transpose(data, (1, 0))
     label = label.view(label.shape + (1,))
     outputs = torch.tensor(rep.run(data))
     pred = torch.round(outputs)
