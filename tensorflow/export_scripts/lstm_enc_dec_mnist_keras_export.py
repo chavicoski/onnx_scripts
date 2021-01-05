@@ -19,7 +19,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--output-path', type=str, default="onnx_models/lstm_end_dec_mnist.onnx",
+parser.add_argument('--output-path', type=str, default="onnx_models/lstm_enc_dec_mnist.onnx",
                     help='Output path to store the onnx file')
 args = parser.parse_args()
 
