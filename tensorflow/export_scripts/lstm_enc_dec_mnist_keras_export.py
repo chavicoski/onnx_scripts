@@ -34,8 +34,8 @@ x_test = x_test.astype("float32") / 255
 x_train = x_train.reshape((x_train.shape[0], 28, 28))
 x_test = x_test.reshape((x_test.shape[0], 28, 28))
 # Prepare input sequences for decoder
-x_train_dec = np.pad(x_train, ((0,0), (1,0), (0,0)), 'constant')[:,0:28,:]
-x_test_dec = np.pad(x_test, ((0,0), (1,0), (0,0)), 'constant')[:,0:28,:]
+x_train_dec = np.pad(x_train, ((0,0), (1,0), (0,0)), 'constant')[:,:-1,:]
+x_test_dec = np.pad(x_test, ((0,0), (1,0), (0,0)), 'constant')[:,:-1,:]
 
 # Use the input sequences as target outputs
 y_train = x_train
@@ -55,14 +55,14 @@ encoder_states = [encoder_h, encoder_c]
 decoder_inputs = Input(shape=(28, 28))
 decoder = LSTM(64, return_sequences=True, return_state=True)
 decoder_outputs, _, _ = decoder(decoder_inputs, initial_state=encoder_states)
-decoder_dense = Dense(28, activation='softmax')
+decoder_dense = Dense(28, activation='sigmoid')
 decoder_outputs = decoder_dense(decoder_outputs)
 # Create the full model
 model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
 model.compile(loss = 'mse', 
         optimizer = "adam",               
-        metrics = ['accuracy'])
+        metrics = [])
 
 model.summary()
 
@@ -70,8 +70,8 @@ model.summary()
 model.fit([x_train, x_train_dec], y_train, batch_size=args.batch_size, epochs=args.epochs)
 
 # Evaluation
-acc = model.evaluate([x_test, x_test_dec], y_test)
-print("Evaluation result: Loss:", acc[0], " Accuracy:", acc[1])
+eval_loss = model.evaluate([x_test, x_test_dec], y_test)
+print("Evaluation result: Loss:", eval_loss)
 
 # Convert to ONNX
 onnx_model = keras2onnx.convert_keras(model, "lstm_mnist", debug_mode=1)

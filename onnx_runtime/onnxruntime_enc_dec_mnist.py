@@ -12,7 +12,7 @@ def main():
     # Training settings
     parser = argparse.ArgumentParser(
         description='MNIST recurrent encoder-decoder')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+    parser.add_argument('-b', '--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('-f', '--onnx-file', type=str, default="onnx_models/trained_model.onnx",
                         help='File path to the onnx file with the pretrained model to test')
@@ -40,9 +40,6 @@ def main():
     output_name = session.get_outputs()[0].name
 
     # Inference with ONNX runtime
-    def mse_func(x, y): 
-        return ((x - y)**2).mean()
-
     def shift_data(data): 
         return np.append(
             np.zeros((data.shape[0],1,28)), # Insert first padded seq element for decoder
@@ -60,7 +57,6 @@ def main():
         result = session.run([output_name], {enc_input_name: data, dec_input_name: data_shifted})
         pred = np.squeeze(np.array(result), axis=0)
         total_mse += ((data - pred)**2).sum() / (data.size/data.shape[0])
-        #total_mse += sum([mse_func(x, y) for x, y in zip(data, pred)])
         total_samples += len(data)
 
     print(f"Results: mse = {(total_mse/total_samples):.5f}")
