@@ -59,7 +59,7 @@ def test(model, device, test_loader):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             data_dec = torch.nn.functional.pad(data, (0, 0, 1, 0))[:,:-1,:]  # Shifted data
-            data_el_size = data_dec.size(1) * data.size(2)  # 28 * 28 for mnist
+            data_el_size = data.size(1) * data.size(2)  # 28 * 28 for mnist
             output = model(data, data_dec)
             test_loss += F.mse_loss(output, data, reduction='sum').item() / data_el_size
             current_samples += data.size(0)
