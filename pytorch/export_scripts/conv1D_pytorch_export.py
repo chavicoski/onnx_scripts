@@ -9,11 +9,11 @@ from torchvision import datasets, transforms
 
 class Flatten(nn.Module):
     def forward(self, x):
-        #batch_size = x.shape[0]
-        #n_features = -1
+        batch_size = x.shape[0]
+        n_features = -1
         # Hard coded values for ONNX testing  
-        batch_size = 64
-        n_features = 32
+        #batch_size = 100
+        #n_features = 32
         return torch.reshape(x, (batch_size, n_features))
 
 class Net(nn.Module):
@@ -84,8 +84,8 @@ def test(model, device, test_loader):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch Conv1D MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
+    parser.add_argument('--batch-size', type=int, default=100, metavar='N',
+                        help='input batch size for training (default: 100)')
     parser.add_argument('--epochs', type=int, default=5, metavar='N',
                         help='number of epochs to train (default: 5)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
@@ -123,8 +123,8 @@ def main():
                        transform=transform)
     dataset2 = datasets.MNIST('../data', train=False,
                        transform=transform)
-    train_loader = torch.utils.data.DataLoader(dataset1, drop_last=True, **kwargs)
-    test_loader = torch.utils.data.DataLoader(dataset2, drop_last=True, **kwargs)
+    train_loader = torch.utils.data.DataLoader(dataset1, **kwargs)
+    test_loader = torch.utils.data.DataLoader(dataset2, **kwargs)
 
     model = Net().to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
