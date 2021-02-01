@@ -29,7 +29,7 @@ LABEL = data.LabelField()
 # Create data splits
 train_data, test_data = datasets.IMDB.splits(TEXT, LABEL)
 # Create vocabulary
-TEXT.build_vocab(train_data, max_size = args.vocab_size)
+TEXT.build_vocab(train_data, max_size = args.vocab_size-2)
 LABEL.build_vocab(train_data)
 # Create splits iterators
 train_iterator, test_iterator = data.BucketIterator.splits(
@@ -46,9 +46,10 @@ output_name = session.get_outputs()[0].name
 correct = 0
 total = 0
 for batch in tqdm(test_iterator):
-    data, label = batch.text.numpy().astype(np.longlong), batch.label.float()
+    data, label = batch.text, batch.label.float()
+    data = torch.transpose(data, 0, 1).numpy().astype(np.longlong)
     label = label.view(label.shape + (1,))
-    dummy = np.zeros((1000, args.batch_size))
+    dummy = np.zeros((args.batch_size, 1000))
     try:
         dummy[:data.shape[0], :data.shape[1]] = data
     except:
