@@ -20,13 +20,16 @@ parser.add_argument('--input-1D', action='store_true', default=False,
                     help='To change the input size to a 784 length vector')
 parser.add_argument('--no-channel', action='store_true', default=False,
                     help='If --input-1D is enabled, removes the channel dimension. (bs, 1, 784) -> (bs, 784)')
-parser.add_argument('--channel-last', action='store_true', default=False,
-                    help='Change input shape from channel first to channel last')
 args = parser.parse_args()
 
 device = torch.device("cpu")
 
 kwargs = {'batch_size': args.batch_size}
+
+class remove_channel_dim(object):
+    ''' Custom transform to preprocess data'''
+    def __call__(self, img):
+        return torch.squeeze(img)
 
 if args.no_channel:
     class from2Dto1D(object):
@@ -39,20 +42,22 @@ else:
         def __call__(self, img):
             return img.view((1, -1))
 
+# Prepare data preprocessing
 _transforms = [transforms.ToTensor()]
 if args.input_1D:
     _transforms.append(from2Dto1D())
+elif args.no_channel:
+    _transforms.append(remove_channel_dim())
+    
 transform = transforms.Compose(_transforms)
 
+# Create data generator
 dataset = datasets.MNIST('../data', train=False, download=True,
                    transform=transform)
 data_loader = torch.utils.data.DataLoader(dataset, drop_last=True, **kwargs)
 
 print(f"Going to load the ONNX model from \"{args.model_path}\"")
 model = onnx.load(args.model_path)
-
-# Check that the IR is well formed
-#onnx.checker.check_model(model)
 
 # Print a human readable representation of the graph
 print(onnx.helper.printable_graph(model.graph))
@@ -66,8 +71,6 @@ correct = 0
 total = 0
 for data, label in tqdm(data_loader):
     data, label = data.numpy(), label.numpy()
-    if args.channel_last:
-        data = np.reshape(data, (data.shape[0], 1, -1))
     outputs = rep.run(data)
     prediction = np.array(np.argmax(np.array(outputs).squeeze(), axis=1).astype(np.int))
     correct += np.sum(prediction == label)

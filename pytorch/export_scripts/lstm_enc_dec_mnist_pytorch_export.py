@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 import argparse
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -93,9 +94,9 @@ def main():
     if use_cuda:
         kwargs.update({'num_workers': 2,
                        'pin_memory': True,
-                       'shuffle': True},
-                     )
+                       'shuffle': True})
 
+    # Create data preprocessing functions
     class remove_ch(object):
         ''' Custom transform to preprocess data'''
         def __call__(self, img):
@@ -106,6 +107,7 @@ def main():
         remove_ch()
         ])
 
+    # Prepare data generators
     dataset1 = datasets.MNIST('../data', train=True, download=True,
                        transform=transform)
     dataset2 = datasets.MNIST('../data', train=False,
@@ -116,12 +118,15 @@ def main():
     model = Net().to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
+    # Train
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
 
     # Save to ONNX file
+    # Input Encoder
     dummy_input = torch.randn(args.batch_size, 28, 28, device=device)
+    # Input decoder
     dummy_input2 = torch.randn(args.batch_size, 28, 28, device=device)
     torch.onnx._export(model, (dummy_input, dummy_input2), args.output_path, keep_initializers_as_inputs=True)
 

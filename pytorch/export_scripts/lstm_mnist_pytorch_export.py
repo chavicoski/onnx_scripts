@@ -41,7 +41,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         output = model(data)
         loss = F.cross_entropy(output, target)
         loss.backward()
-        pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+        pred = output.argmax(dim=1, keepdim=True)
         correct += pred.eq(target.view_as(pred)).sum().item()
         current_samples += data.size(0)
         optimizer.step()
@@ -60,8 +60,8 @@ def test(model, device, test_loader):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += F.cross_entropy(output, target, reduction='sum').item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            test_loss += F.cross_entropy(output, target, reduction='sum').item()
+            pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
@@ -97,9 +97,9 @@ def main():
     if use_cuda:
         kwargs.update({'num_workers': 2,
                        'pin_memory': True,
-                       'shuffle': True},
-                     )
+                       'shuffle': True})
 
+    # Create preprocessing functions
     class remove_ch(object):
         ''' Custom transform to preprocess data'''
         def __call__(self, img):
@@ -110,6 +110,7 @@ def main():
         remove_ch()
         ])
 
+    # Prepare data generators
     dataset1 = datasets.MNIST('../data', train=True, download=True,
                        transform=transform)
     dataset2 = datasets.MNIST('../data', train=False,
@@ -120,6 +121,7 @@ def main():
     model = Net().to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
+    # Train
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)

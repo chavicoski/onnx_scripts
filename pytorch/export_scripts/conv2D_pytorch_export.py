@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 import argparse
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,28 +12,26 @@ class Flatten(nn.Module):
     def forward(self, x):
         batch_size = x.shape[0]
         n_features = -1
-        # Hard coded values for ONNX testing  
-        #batch_size = 100
-        #n_features = 16
         return torch.reshape(x, (batch_size, n_features))
 
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.model = nn.Sequential(
-            nn.Conv2d(1, 16, 3, 1),
+            nn.Conv2d(1, 16, 5, 1, 2),
+            nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(2),
             nn.Conv2d(16, 16, 3, 1),
+            nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Conv2d(16, 16, 3, 1),
+            nn.AvgPool2d(2),
+            nn.Conv2d(16, 16, 4, 2),
+            nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.MaxPool2d(2),
             Flatten(),
-            nn.Linear(16, 10),
-            nn.Softmax(dim=1)
-            )
+            nn.Linear(64, 10),
+            nn.Softmax(dim=1))
 
     def forward(self, x):
         return self.model(x)
@@ -48,7 +47,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         output = model(data)
         loss = F.cross_entropy(output, target)
         loss.backward()
-        pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+        pred = output.argmax(dim=1, keepdim=True)
         correct += pred.eq(target.view_as(pred)).sum().item()
         current_samples += data.size(0)
         optimizer.step()
@@ -67,8 +66,8 @@ def test(model, device, test_loader):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += F.cross_entropy(output, target, reduction='sum').item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            test_loss += F.cross_entropy(output, target, reduction='sum').item()
+            pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
@@ -104,12 +103,10 @@ def main():
     if use_cuda:
         kwargs.update({'num_workers': 2,
                        'pin_memory': True,
-                       'shuffle': True},
-                     )
+                       'shuffle': True})
 
-    transform=transforms.Compose([
-        transforms.ToTensor(),
-        ])
+    # Prepare data generators
+    transform=transforms.Compose([transforms.ToTensor()])
     dataset1 = datasets.MNIST('../data', train=True, download=True,
                        transform=transform)
     dataset2 = datasets.MNIST('../data', train=False,
@@ -120,6 +117,7 @@ def main():
     model = Net().to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
+    # Train
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)

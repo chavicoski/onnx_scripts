@@ -2,7 +2,8 @@ import numpy as np
 import argparse
 import os
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Conv2D, Flatten, MaxPooling2D, Input
+from tensorflow.keras.layers import Input, Dense, Conv2D, Flatten, BatchNormalization
+from tensorflow.keras.layers import AveragePooling2D, MaxPooling2D, GlobalAveragePooling2D 
 from tensorflow.keras.datasets import mnist
 from keras.utils.np_utils import to_categorical
 import keras2onnx
@@ -45,19 +46,22 @@ print("Test labels shape:", y_test.shape)
 
 model = Sequential()
 model.add(Input(shape=(28, 28, 1), name="linput"))
-model.add(Conv2D(16, 3, activation="relu"))
+model.add(Conv2D(16, 5, activation="relu", padding="same"))
+model.add(BatchNormalization(scale=True, center=True))
 model.add(MaxPooling2D(2, 2))
+model.add(Conv2D(16, 4, activation="relu", padding="same"))
+model.add(BatchNormalization(scale=True, center=True))
+model.add(AveragePooling2D(2, 2))
 model.add(Conv2D(16, 3, activation="relu"))
-model.add(MaxPooling2D(2, 2))
-model.add(Conv2D(16, 3, activation="relu"))
-model.add(MaxPooling2D(2, 2))
+model.add(BatchNormalization(scale=True, center=True))
+model.add(GlobalAveragePooling2D())
 model.add(Flatten())
 model.add(Dense(10, activation = 'softmax'))
 
-model.build(input_shape=(28, 28, 1))  # For keras2onnx 
+model.build(input_shape=(28, 28, 1))  # For keras2onnx
 
-model.compile(loss = 'categorical_crossentropy', 
-        optimizer = "adam",               
+model.compile(loss = 'categorical_crossentropy',
+        optimizer = "adam",
         metrics = ['accuracy'])
 
 model.summary()

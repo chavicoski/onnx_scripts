@@ -1,6 +1,5 @@
-import numpy as np
 import argparse
-import os
+
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Input, LeakyReLU, LSTM
 from tensorflow.keras.datasets import mnist
@@ -50,13 +49,13 @@ model.add(LeakyReLU())
 model.add(LSTM(128))
 model.add(Dense(32))
 model.add(LeakyReLU())
-model.add(Dense(10, activation = 'softmax'))
+model.add(Dense(10, activation='softmax'))
 
-model.build(input_shape=(28, 28))  # For keras2onnx 
+model.build(input_shape=(28, 28))  # For keras2onnx
 
-model.compile(loss = 'categorical_crossentropy', 
-        optimizer = "adam",               
-        metrics = ['accuracy'])
+model.compile(loss='categorical_crossentropy',
+              optimizer="adam",
+              metrics=['accuracy'])
 
 model.summary()
 

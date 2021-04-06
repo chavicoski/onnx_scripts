@@ -33,7 +33,7 @@ x_test = x_test.astype("float32") / 255
 # Prepare sequences (bs, 28, 28)
 x_train = x_train.reshape((x_train.shape[0], 28, 28))
 x_test = x_test.reshape((x_test.shape[0], 28, 28))
-# Prepare input sequences for decoder
+# Prepare shifted input sequences for decoder
 x_train_dec = np.pad(x_train, ((0,0), (1,0), (0,0)), 'constant')[:,:-1,:]
 x_test_dec = np.pad(x_test, ((0,0), (1,0), (0,0)), 'constant')[:,:-1,:]
 
@@ -60,8 +60,8 @@ decoder_outputs = decoder_dense(decoder_outputs)
 # Create the full model
 model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
-model.compile(loss = 'mse', 
-        optimizer = "adam",               
+model.compile(loss = 'mse',
+        optimizer = "adam",
         metrics = [])
 
 model.summary()
