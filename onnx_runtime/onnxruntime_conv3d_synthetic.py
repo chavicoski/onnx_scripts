@@ -1,4 +1,4 @@
-from __future__ import print_function
+import sys
 import argparse
 
 import numpy as np
@@ -17,6 +17,8 @@ def main():
                         help='input batch size for training (default: 2)')
     parser.add_argument('-f', '--onnx-file', type=str, default="onnx_models/trained_model.onnx",
                         help='File path to the onnx file with the pretrained model to test')
+    parser.add_argument('-m', '--target-metric', type=str, default="",
+                        help='Path to a file with a single value with the target metric to achieve')
     args = parser.parse_args()
 
     # Load ONNX model
@@ -30,11 +32,11 @@ def main():
 
     # Prepare data loader
     class Dummy_datagen:
-        def __init__(self, batch_size=2):
-            # Shape: (n_samples=2, ch=2, depth=8, height=8, width=8)
-            self.samples = np.arange(1, (2*3*8*8*8)+1).reshape((2, 3, 8, 8, 8)).astype(np.float32)
+        def __init__(self, batch_size=2, n_samples=2):
+            # Shape: (n_samples=n_samples, ch=2, depth=16, height=16, width=16)
+            self.samples = np.arange(1, (n_samples*3*16*16*16)+1).reshape((n_samples, 3, 16, 16, 16)).astype(np.float32)
             # Shape: (n_samples=2, dim=2)
-            self.labels = np.arange(1, (2*2)+1).reshape((2, 2)).astype(np.float32)
+            self.labels = np.arange(1, (n_samples*2)+1).reshape((n_samples, 2)).astype(np.float32)
             self.curr_idx = 0  # Current index of the batch
             self.bs = batch_size
 
@@ -56,15 +58,29 @@ def main():
     preds_sum = 0
     for data, label in tqdm(Dummy_datagen(args.batch_size)):
         # Run model
+        print("data mean: ", data.mean())
+        print("label:\n", label)
         result = session.run([output_name], {input_name: data})
         pred = np.squeeze(np.array(result), axis=0)
         print(pred)
         preds_sum += pred.sum()
-        total_mse += ((label - pred)**2).sum() / (label.size/label.shape[0])
+        total_mse += ((label - pred)**2).sum()
         total_samples += len(data)
 
-    print(f"Results: mse = {(total_mse/total_samples):.5f}")
+    final_mse = total_mse / total_samples
+    print(f"Results: mse = {final_mse:.5f}")
     print(f"Results: sum = {preds_sum}")
+
+    if args.target_metric != "":
+        with open(args.target_metric, 'r') as mfile:
+            target_metric_val = float(mfile.read())
+
+        metrics_diff = abs(final_mse - target_metric_val)
+        if metrics_diff > 0.001:
+            print(f"Test failed: Metric difference too high target={target_metric_val}, pred={final_mse:.5f}")
+            sys.exit(1)
+        else:
+            print(f"Test passed!: target={target_metric_val}, pred={final_mse:.5f}")
 
 
 if __name__ == '__main__':

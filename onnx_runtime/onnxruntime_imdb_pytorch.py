@@ -1,4 +1,5 @@
-from __future__ import print_function
+import sys
+
 import numpy as np
 from tqdm import tqdm
 import argparse
@@ -17,6 +18,8 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--vocab-size', type=int, default=2000,
                     help='Max size of the vocabulary (default: 2000)')
+parser.add_argument('-m', '--target-metric', type=str, default="",
+                    help='Path to a file with a single value with the target metric to achieve')
 args = parser.parse_args()
 
 torch.manual_seed(args.seed)
@@ -60,4 +63,16 @@ for batch in tqdm(test_iterator):
     correct += pred.eq(label).sum().item()
     total += len(label)
 
-print(f"Results: Accuracy = {(correct/total)*100:.2f}({correct}/{total})")
+final_acc = correct / total
+print(f"Results: Accuracy = {final_acc*100:.2f}({correct}/{total})")
+
+if args.target_metric != "":
+    with open(args.target_metric, 'r') as mfile:
+        target_metric_val = float(mfile.read())
+
+    metrics_diff = abs(final_acc - target_metric_val)
+    if metrics_diff > 0.001:
+        print(f"Test failed: Metric difference too high target={target_metric_val}, pred={final_acc:.5f}")
+        sys.exit(1)
+    else:
+        print(f"Test passed!: target={target_metric_val}, pred={final_acc:.5f}")

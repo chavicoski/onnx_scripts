@@ -1,3 +1,5 @@
+import sys
+
 import torch
 import argparse
 import os
@@ -20,6 +22,8 @@ parser.add_argument('--max-features', type=int, default=2000,
                     help='Maximum number of words from IMDB dataset')
 parser.add_argument('-uin', '--unsqueeze-input', action='store_true', default=False,
                     help='Input shape from [batch, seq_len] to [batch, seq_len, 1]')
+parser.add_argument('-m', '--target-metric', type=str, default="",
+                    help='Path to a file with a single value with the target metric to achieve')
 args = parser.parse_args()
 
 
@@ -52,4 +56,16 @@ for data, labels in batch_gen(x_test, y_test, args.batch_size):
     correct += pred.eq(torch.tensor(labels)).sum().item()
     total += args.batch_size
 
-print(f"Results: Accuracy = {(correct/total)*100:.2f}({correct}/{total})")
+final_acc = correct / total
+print(f"Results: Accuracy = {final_acc*100:.2f}({correct}/{total})")
+
+if args.target_metric != "":
+    with open(args.target_metric, 'r') as mfile:
+        target_metric_val = float(mfile.read())
+
+    metrics_diff = abs(final_acc - target_metric_val)
+    if metrics_diff > 0.03:  # The dataset is not the same, we look for similar accuracy
+        print(f"Test failed: Metric difference too high target={target_metric_val}, pred={final_acc:.5f}")
+        sys.exit(1)
+    else:
+        print(f"Test passed!: target={target_metric_val}, pred={final_acc:.5f}")

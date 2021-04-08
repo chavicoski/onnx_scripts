@@ -1,4 +1,4 @@
-from __future__ import print_function
+import sys
 import argparse
 
 import numpy as np
@@ -25,6 +25,8 @@ def main():
                         help='Change input shape from channel first to channel last')
     parser.add_argument('--sequence', action='store_true', default=False,
                         help='To change the input shape to a sequence (seq_len=28, bs, in_len=28)')
+    parser.add_argument('-m', '--target-metric', type=str, default="",
+                        help='Path to a file with a single value with the target metric to achieve')
     args = parser.parse_args()
 
     kwargs = {'batch_size': args.batch_size}
@@ -78,7 +80,18 @@ def main():
         correct += np.sum(prediction == label)
         total += len(prediction)
 
-    print(f"Results: Accuracy = {(correct/total)*100:.4f}({correct}/{total})")
+    final_acc = correct / total
+    print(f"Results: Accuracy = {final_acc*100:.4f}({correct}/{total})")
+    if args.target_metric != "":
+        with open(args.target_metric, 'r') as mfile:
+            target_metric_val = float(mfile.read())
+
+        metrics_diff = abs(final_acc - target_metric_val)
+        if metrics_diff > 0.001:
+            print(f"Test failed: Metric difference too high target={target_metric_val}, pred={final_acc:.5f}")
+            sys.exit(1)
+        else:
+            print(f"Test passed!: target={target_metric_val}, pred={final_acc:.5f}")
 
 
 if __name__ == '__main__':

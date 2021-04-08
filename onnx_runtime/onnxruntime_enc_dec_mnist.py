@@ -1,4 +1,5 @@
-from __future__ import print_function
+import sys
+
 import numpy as np
 from tqdm import tqdm
 import argparse
@@ -16,6 +17,8 @@ def main():
                         help='input batch size for training (default: 64)')
     parser.add_argument('-f', '--onnx-file', type=str, default="onnx_models/trained_model.onnx",
                         help='File path to the onnx file with the pretrained model to test')
+    parser.add_argument('-m', '--target-metric', type=str, default="",
+                        help='Path to a file with a single value with the target metric to achieve')
     args = parser.parse_args()
 
     device = torch.device("cpu")
@@ -59,8 +62,19 @@ def main():
         total_mse += ((data - pred)**2).sum() / (data.size/data.shape[0])
         total_samples += len(data)
 
-    print(f"Results: mse = {(total_mse/total_samples):.5f}")
+    final_mse = total_mse / total_samples
+    print(f"Results: mse = {final_mse:.5f}")
 
+    if args.target_metric != "":
+        with open(args.target_metric, 'r') as mfile:
+            target_metric_val = float(mfile.read())
+
+        metrics_diff = abs(final_mse - target_metric_val)
+        if metrics_diff > 0.001:
+            print(f"Test failed: Metric difference too high target={target_metric_val}, pred={final_mse:.5f}")
+            sys.exit(1)
+        else:
+            print(f"Test passed!: target={target_metric_val}, pred={final_mse:.5f}")
 
 if __name__ == '__main__':
     main()
