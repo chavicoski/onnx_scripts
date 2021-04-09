@@ -32,11 +32,11 @@ def main():
 
     # Prepare data loader
     class Dummy_datagen:
-        def __init__(self, batch_size=2, n_samples=2):
-            # Shape: (n_samples=n_samples, ch=2, depth=16, height=16, width=16)
-            self.samples = np.arange(1, (n_samples*3*16*16*16)+1).reshape((n_samples, 3, 16, 16, 16)).astype(np.float32)
-            # Shape: (n_samples=2, dim=2)
-            self.labels = np.arange(1, (n_samples*2)+1).reshape((n_samples, 2)).astype(np.float32)
+        def __init__(self, batch_size=2, n_samples=6, num_classes=1):
+            # Shape: (n_samples=n_samples, ch=3, depth=16, height=16, width=16)
+            self.samples = np.linspace(0, 1, n_samples*3*16*16*16).reshape((n_samples, 3, 16, 16, 16)).astype(np.float32)
+            # Shape: (n_samples=n_samples, dim=num_classes)
+            self.labels = np.linspace(0, 1, n_samples*num_classes).reshape((n_samples, num_classes)).astype(np.float32)
             self.curr_idx = 0  # Current index of the batch
             self.bs = batch_size
 
@@ -58,18 +58,14 @@ def main():
     preds_sum = 0
     for data, label in tqdm(Dummy_datagen(args.batch_size)):
         # Run model
-        print("data mean: ", data.mean())
-        print("label:\n", label)
         result = session.run([output_name], {input_name: data})
         pred = np.squeeze(np.array(result), axis=0)
-        print(pred)
         preds_sum += pred.sum()
-        total_mse += ((label - pred)**2).sum()
+        total_mse += ((label - pred)**2).sum() #/ (data.size/data.shape[0])
         total_samples += len(data)
 
     final_mse = total_mse / total_samples
     print(f"Results: mse = {final_mse:.5f}")
-    print(f"Results: sum = {preds_sum}")
 
     if args.target_metric != "":
         with open(args.target_metric, 'r') as mfile:

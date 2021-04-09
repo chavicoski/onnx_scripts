@@ -64,7 +64,7 @@ if args.target_metric != "":
         target_metric_val = float(mfile.read())
 
     metrics_diff = abs(final_acc - target_metric_val)
-    if metrics_diff > 0.03:  # The dataset is not the same, we look for similar accuracy
+    if metrics_diff > 0.05:  # The dataset is not the same, we look for similar accuracy
         print(f"Test failed: Metric difference too high target={target_metric_val}, pred={final_acc:.5f}")
         sys.exit(1)
     else:
