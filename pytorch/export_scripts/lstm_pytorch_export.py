@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-from torchtext import datasets, data
+from torchtext.legacy import datasets, data
 
 
 class Net(nn.Module):
@@ -73,11 +73,13 @@ def test(model, device, test_loader, criterion):
             pred = torch.round(output)
             correct += pred.eq(target).sum().item()
 
+    test_acc = correct / len(test_loader.dataset)
     test_loss /= len(test_loader.dataset)
 
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
+        test_loss, correct, len(test_loader.dataset), 100. * test_acc))
+
+    return test_loss, test_acc
 
 
 def main():
@@ -97,6 +99,8 @@ def main():
                         help='Max size of the vocabulary (default: 2000)')
     parser.add_argument('--output-path', type=str, default="onnx_models/lstm_imdb.onnx", 
                         help='Output path to store the onnx file')
+    parser.add_argument('--output-metric', type=str, default="",
+                        help='Output file path to store the metric value obtained in test set')
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -122,9 +126,15 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.BCELoss()
 
+    test_acc = -1.0
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_iterator, criterion, optimizer, epoch)
-        test(model, device, test_iterator, criterion)
+        _, test_acc = test(model, device, test_iterator, criterion)
+
+    # In case of providing output metric file, store the test accuracy value
+    if args.output_metric != "":
+        with open(args.output_metric, 'w') as ofile:
+            ofile.write(str(test_acc))
 
     # Save to ONNX file
     dummy_input = torch.zeros((args.batch_size, 1000)).long().to(device)

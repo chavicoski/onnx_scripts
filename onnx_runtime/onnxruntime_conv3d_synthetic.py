@@ -55,12 +55,10 @@ def main():
 
     total_mse = 0
     total_samples = 0
-    preds_sum = 0
     for data, label in tqdm(Dummy_datagen(args.batch_size)):
         # Run model
         result = session.run([output_name], {input_name: data})
         pred = np.squeeze(np.array(result), axis=0)
-        preds_sum += pred.sum()
         total_mse += ((label - pred)**2).sum() #/ (data.size/data.shape[0])
         total_samples += len(data)
 

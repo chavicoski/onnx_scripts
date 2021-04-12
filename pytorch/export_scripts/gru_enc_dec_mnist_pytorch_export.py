@@ -12,19 +12,19 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         # Encoder
-        self.lstm_enc = nn.LSTM(28, 128)
+        self.gru_enc = nn.GRU(28, 128)
         # Decoder
-        self.lstm_dec = nn.LSTM(28, 128)
+        self.gru_dec = nn.GRU(28, 128)
         self.dense = nn.Linear(128, 28)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x, x2):
         # Encoder
         x = x.permute(1, 0, 2)
-        enc_out, hidden_enc = self.lstm_enc(x)
+        enc_out, hidden_enc = self.gru_enc(x)
         # Decoder
         x2 = x2.permute(1, 0, 2)
-        dec_out, hidden_dec = self.lstm_dec(x2, hidden_enc)
+        dec_out, hidden_dec = self.gru_dec(x2, hidden_enc)
         x = self.dense(dec_out)
         out = self.sigmoid(x)
         out = out.permute(1, 0, 2)
@@ -73,7 +73,7 @@ def test(model, device, test_loader):
 
 def main():
     # Training settings
-    parser = argparse.ArgumentParser(description='PyTorch LSTM encoder-decoder MNIST Example')
+    parser = argparse.ArgumentParser(description='PyTorch GRU encoder-decoder MNIST Example')
     parser.add_argument('--batch-size', type=int, default=100, metavar='N',
                         help='input batch size for training (default: 100)')
     parser.add_argument('--epochs', type=int, default=5, metavar='N',
@@ -84,7 +84,7 @@ def main():
                         help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--output-path', type=str, default="onnx_models/lstm_enc_dec_mnist.onnx",
+    parser.add_argument('--output-path', type=str, default="onnx_models/gru_enc_dec_mnist.onnx",
                         help='Output path to store the onnx file')
     parser.add_argument('--output-metric', type=str, default="",
                         help='Output file path to store the metric value obtained in test set')

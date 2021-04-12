@@ -9,15 +9,15 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 
-
+# Prepare data loader
 class Dummy_datagen:
-    def __init__(self, batch_size=2):
-        # Shape: (n_samples=2, ch=2, depth=8, height=8, width=8)
-        self.samples = np.arange(1, (2*3*8*8*8)+1).reshape((2, 3, 8, 8, 8)).astype(np.float32)
-        # Shape: (n_samples=2, dim=2)
-        self.labels = np.arange(1, (2*2)+1).reshape((2, 2)).astype(np.float32)
+    def __init__(self, batch_size=2, n_samples=6, num_classes=1):
+        # Shape: (n_samples=n_samples, ch=3, depth=16, height=16, width=16)
+        self.samples = np.linspace(0, 1, n_samples*3*16*16*16).reshape((n_samples, 3, 16, 16, 16)).astype(np.float32)
+        # Shape: (n_samples=n_samples, dim=num_classes)
+        self.labels = np.linspace(0, 1, n_samples*num_classes).reshape((n_samples, num_classes)).astype(np.float32)
         self.curr_idx = 0  # Current index of the batch
-        self.bs = batch_size  # Batch_size
+        self.bs = batch_size
 
     def __iter__(self):
         return self
@@ -30,7 +30,6 @@ class Dummy_datagen:
         self.curr_idx += self.bs
         if target <= self.samples.shape[0]-self.bs:
             return self.samples[target:target+self.bs], self.labels[target:target+self.bs]
-        self.curr_idx = 0  # Reset
         raise StopIteration
 
 
@@ -50,8 +49,8 @@ class Net(nn.Module):
             nn.Conv3d(5, 10, (3, 3, 3), (1, 1, 1), padding=(2, 2, 2)),
             nn.AvgPool3d((2, 2, 2), (2, 2, 2)),
             Flatten(),
-            nn.Linear(360, 100),
-            nn.Linear(100, 2),
+            nn.Linear(2000, 100),
+            nn.Linear(100, 1)
         )
 
     def forward(self, x):
@@ -88,17 +87,21 @@ def test(model, device, test_loader):
         for data, target in test_loader:
             data, target = torch.from_numpy(data), torch.from_numpy(target)
             data, target = data.to(device), target.to(device)
+            output = model(data)
+            '''
             data_el_size = 1
             for dim in data.size()[1:]:
                 data_el_size *= dim
-            output = model(data)
-            print("test output: ", output)
             test_loss += F.mse_loss(output, target,
                                     reduction='sum').item() / data_el_size
+            '''
+            test_loss += ((target - output)**2).sum()
             current_samples += data.size(0)
 
-    print('\nTest set: Average loss: {:.4f}\n'.format(
-        test_loss / current_samples))
+    test_loss = test_loss / current_samples
+    print(f'\nTest set: Average loss: {test_loss:.4f}\n')
+
+    return test_loss.item()  # Get loss value from pytorch loss
 
 
 def main():
@@ -117,6 +120,8 @@ def main():
                         help='random seed (default: 1)')
     parser.add_argument('--output-path', type=str, default="onnx_models/conv3D_synthetic.onnx",
                         help='Output path to store the onnx file')
+    parser.add_argument('--output-metric', type=str, default="",
+                        help='Output file path to store the metric value obtained in test set')
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -132,12 +137,18 @@ def main():
     test_loader = Dummy_datagen(args.batch_size)
 
     # Train
+    test_loss = -1.0
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
-        test(model, device, test_loader)
+        test_loss = test(model, device, test_loader)
+
+    # In case of providing output metric file, store the test accuracy value
+    if args.output_metric != "":
+        with open(args.output_metric, 'w') as ofile:
+            ofile.write(str(test_loss))
 
     # Save to ONNX file
-    dummy_input = torch.randn(args.batch_size, 3, 8, 8, 8, device=device)
+    dummy_input = torch.randn(args.batch_size, 3, 16, 16, 16, device=device)
     torch.onnx._export(model, dummy_input, args.output_path,
                        keep_initializers_as_inputs=True)
 
