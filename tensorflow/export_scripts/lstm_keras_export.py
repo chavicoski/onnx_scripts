@@ -25,6 +25,8 @@ parser.add_argument('--max-len', type=int, default=250,
                     help='Sequence max length (default: 250)')
 parser.add_argument('--output-path', type=str, default="onnx_models/lstm_imdb.onnx", 
                     help='Output path to store the onnx file')
+parser.add_argument('--output-metric', type=str, default="",
+                    help='Output file path to store the metric value obtained in test set')
 args = parser.parse_args()
 
 print('Loading data...')
@@ -60,6 +62,11 @@ loss, acc = model.evaluate(x_test, y_test,
                             batch_size=args.batch_size)
 
 print("Evaluation result: Loss:", loss, " Accuracy:", acc)
+
+# In case of providing output metric file, store the test accuracy value
+if args.output_metric != "":
+    with open(args.output_metric, 'w') as ofile:
+        ofile.write(str(acc))
 
 # Convert to ONNX
 onnx_model = keras2onnx.convert_keras(model, "lstm_imdb", debug_mode=1)

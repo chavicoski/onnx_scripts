@@ -20,6 +20,8 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--output-path', type=str, default="onnx_models/lstm_mnist.onnx",
                     help='Output path to store the onnx file')
+parser.add_argument('--output-metric', type=str, default="",
+                    help='Output file path to store the metric value obtained in test set')
 args = parser.parse_args()
 
 # Load MNIST data
@@ -63,8 +65,13 @@ model.summary()
 model.fit(x_train, y_train, batch_size=args.batch_size, epochs=args.epochs)
 
 # Evaluation
-acc = model.evaluate(x_test, y_test)
-print("Evaluation result: Loss:", acc[0], " Accuracy:", acc[1])
+res = model.evaluate(x_test, y_test)
+print("Evaluation result: Loss:", res[0], " Accuracy:", res[1])
+
+# In case of providing output metric file, store the test accuracy value
+if args.output_metric != "":
+    with open(args.output_metric, 'w') as ofile:
+        ofile.write(str(res[1]))
 
 # Convert to ONNX
 onnx_model = keras2onnx.convert_keras(model, "lstm_mnist", debug_mode=1)

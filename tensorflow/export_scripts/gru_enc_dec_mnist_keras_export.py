@@ -2,13 +2,13 @@ import numpy as np
 import argparse
 import os
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Dense, Input, LeakyReLU, LSTM, Softmax
+from tensorflow.keras.layers import Dense, Input, LeakyReLU, GRU, Softmax
 from tensorflow.keras.datasets import mnist
 from keras.utils.np_utils import to_categorical
 import keras2onnx
 
 # Training settings
-parser = argparse.ArgumentParser(description='Keras LSTM encoder decoder MNIST Example')
+parser = argparse.ArgumentParser(description='Keras GRU encoder decoder MNIST Example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--epochs', type=int, default=5, metavar='N',
@@ -19,7 +19,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--output-path', type=str, default="onnx_models/lstm_enc_dec_mnist.onnx",
+parser.add_argument('--output-path', type=str, default="onnx_models/gru_enc_dec_mnist.onnx",
                     help='Output path to store the onnx file')
 parser.add_argument('--output-metric', type=str, default="",
                     help='Output file path to store the metric value obtained in test set')
@@ -50,12 +50,12 @@ print("Test labels shape:", y_test.shape)
 
 # Definer encoder
 encoder_inputs = Input(shape=(28, 28))
-encoder = LSTM(64, return_state=True)
+encoder = GRU(64, return_state=True)
 encoder_outputs, encoder_h, encoder_c = encoder(encoder_inputs)
 encoder_states = [encoder_h, encoder_c]
 # Define decoder
 decoder_inputs = Input(shape=(28, 28))
-decoder = LSTM(64, return_sequences=True, return_state=True)
+decoder = GRU(64, return_sequences=True, return_state=True)
 decoder_outputs, _, _ = decoder(decoder_inputs, initial_state=encoder_states)
 decoder_dense = Dense(28, activation='sigmoid')
 decoder_outputs = decoder_dense(decoder_outputs)
@@ -81,6 +81,6 @@ if args.output_metric != "":
         ofile.write(str(eval_loss))
 
 # Convert to ONNX
-onnx_model = keras2onnx.convert_keras(model, "lstm_mnist", debug_mode=1)
+onnx_model = keras2onnx.convert_keras(model, "gru_mnist", debug_mode=1)
 # Save ONNX to file
 keras2onnx.save_model(onnx_model, args.output_path)
