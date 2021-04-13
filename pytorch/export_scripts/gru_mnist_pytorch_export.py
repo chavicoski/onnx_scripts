@@ -15,7 +15,7 @@ class Net(nn.Module):
         self.in_dense = nn.Sequential(
             nn.Linear(input_dim, 32),
             nn.LeakyReLU())
-        self.recurrent = nn.LSTM(32, 128, batch_first=True)
+        self.recurrent = nn.GRU(32, 128, batch_first=True)
         self.out_dense = nn.Sequential(
             nn.Linear(128, 32),
             nn.LeakyReLU(),
@@ -26,7 +26,7 @@ class Net(nn.Module):
         embedded = self.in_dense(x)
         # embedded = [batch_size, 28, 32]
 
-        lstm_out, (h, c) = self.recurrent(embedded)
+        gru_out, h = self.recurrent(embedded)
         h = torch.squeeze(h, 0)
         # h = [batch_size, 128]
 
@@ -82,7 +82,7 @@ def test(model, device, test_loader):
 
 def main():
     # Training settings
-    parser = argparse.ArgumentParser(description='PyTorch LSTM MNIST Example')
+    parser = argparse.ArgumentParser(description='PyTorch GRU MNIST Example')
     parser.add_argument('--batch-size', type=int, default=100, metavar='N',
                         help='input batch size for training (default: 100)')
     parser.add_argument('--epochs', type=int, default=5, metavar='N',
@@ -93,7 +93,7 @@ def main():
                         help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--output-path', type=str, default="onnx_models/lstm_mnist.onnx",
+    parser.add_argument('--output-path', type=str, default="onnx_models/gru_mnist.onnx",
                         help='Output path to store the onnx file')
     parser.add_argument('--output-metric', type=str, default="",
                         help='Output file path to store the metric value obtained in test set')
