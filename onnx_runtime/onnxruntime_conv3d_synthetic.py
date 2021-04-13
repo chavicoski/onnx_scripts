@@ -70,7 +70,7 @@ def main():
             target_metric_val = float(mfile.read())
 
         metrics_diff = abs(final_mse - target_metric_val)
-        if metrics_diff > 0.001:
+        if metrics_diff > 0.01:
             print(f"Test failed: Metric difference too high target={target_metric_val}, pred={final_mse:.5f}")
             sys.exit(1)
         else:

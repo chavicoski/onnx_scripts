@@ -51,12 +51,12 @@ print("Test labels shape:", y_test.shape)
 # Definer encoder
 encoder_inputs = Input(shape=(28, 28))
 encoder = GRU(64, return_state=True)
-encoder_outputs, encoder_h, encoder_c = encoder(encoder_inputs)
-encoder_states = [encoder_h, encoder_c]
+encoder_outputs, encoder_h = encoder(encoder_inputs)
+encoder_states = [encoder_h]
 # Define decoder
 decoder_inputs = Input(shape=(28, 28))
 decoder = GRU(64, return_sequences=True, return_state=True)
-decoder_outputs, _, _ = decoder(decoder_inputs, initial_state=encoder_states)
+decoder_outputs, _ = decoder(decoder_inputs, initial_state=encoder_states)
 decoder_dense = Dense(28, activation='sigmoid')
 decoder_outputs = decoder_dense(decoder_outputs)
 # Create the full model
