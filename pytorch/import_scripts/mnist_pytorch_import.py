@@ -1,4 +1,5 @@
 from __future__ import print_function
+import sys
 import os
 import argparse
 import torch
@@ -14,12 +15,14 @@ from tqdm import tqdm
 parser = argparse.ArgumentParser(description='PyTorch MNIST ONNX import example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
-parser.add_argument('--model-path', type=str, default="onnx_models/conv2D_mnist.onnx", 
+parser.add_argument('--onnx-file', type=str, default="onnx_models/conv2D_mnist.onnx",
                     help='Path of the onnx file to load')
 parser.add_argument('--input-1D', action='store_true', default=False,
                     help='To change the input size to a 784 length vector')
 parser.add_argument('--no-channel', action='store_true', default=False,
                     help='If --input-1D is enabled, removes the channel dimension. (bs, 1, 784) -> (bs, 784)')
+parser.add_argument('-m', '--target-metric', type=str, default="",
+                    help='Path to a file with a single value with the target metric to achieve')
 args = parser.parse_args()
 
 device = torch.device("cpu")
@@ -56,8 +59,8 @@ dataset = datasets.MNIST('../data', train=False, download=True,
                    transform=transform)
 data_loader = torch.utils.data.DataLoader(dataset, drop_last=True, **kwargs)
 
-print(f"Going to load the ONNX model from \"{args.model_path}\"")
-model = onnx.load(args.model_path)
+print(f"Going to load the ONNX model from \"{args.onnx_file}\"")
+model = onnx.load(args.onnx_file)
 
 # Print a human readable representation of the graph
 print(onnx.helper.printable_graph(model.graph))
@@ -76,4 +79,16 @@ for data, label in tqdm(data_loader):
     correct += np.sum(prediction == label)
     total += len(prediction)
 
-print(f"Results: Accuracy = {(correct/total)*100:.2f}({correct}/{total})")
+final_acc = correct / total
+print(f"Results: Accuracy = {final_acc*100:.2f}({correct}/{total})")
+
+if args.target_metric != "":
+    with open(args.target_metric, 'r') as mfile:
+        target_metric_val = float(mfile.read())
+
+    metrics_diff = abs(final_acc - target_metric_val)
+    if metrics_diff > 0.001:
+        print(f"Test failed: Metric difference too high target={target_metric_val}, pred={final_acc:.5f}")
+        sys.exit(1)
+    else:
+        print(f"Test passed!: target={target_metric_val}, pred={final_acc:.5f}")
